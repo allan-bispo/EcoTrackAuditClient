@@ -18,7 +18,7 @@ import { CompanyDetailView } from "@/components/company-detail-view"
 const companies = [
   {
     id: 1,
-    name: "Metalúrgica Nacional",
+    name: "Metalúrgica Nacional ",
     cnpj: "CNPJ: 12.345.678/0001-90",
     industry: "Metallurgy",
     location: "São Paulo, SP",
