@@ -2,14 +2,13 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { Providers } from "./providers"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "EcoTrack - Monitoramento Ambiental",
-  description: "Sistema de monitoramento ambiental industrial",
-    generator: 'v0.dev'
+  title: "GovMonitor",
+  description: "Sistema de Monitoramento Industrial",
 }
 
 export default function RootLayout({
@@ -19,10 +18,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
+      <body className={inter.className} suppressHydrationWarning>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

@@ -1,9 +1,10 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { signIn, useSession } from "next-auth/react"
 import { Eye, EyeOff, Shield, Factory, Mail, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,16 +13,53 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
   const [userType, setUserType] = useState<"auditoria" | "fabrica">("auditoria")
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/dashboard")
+    }
+  }, [status, router])
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Aqui você implementaria a lógica de login
-    console.log({ userType, email, password, rememberMe })
+    setError("")
+    setLoading(true)
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError(result.error)
+        return
+      }
+
+      router.push("/dashboard")
+    } catch (error) {
+      setError("Ocorreu um erro ao fazer login")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Carregando...</p>
+      </div>
+    )
   }
 
   return (
@@ -80,6 +118,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 h-12"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -99,6 +138,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 h-12"
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
@@ -110,6 +150,10 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {error && (
+              <p className="text-sm text-red-500">{error}</p>
+            )}
+
             {/* Lembrar-me e Esqueceu a senha */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -117,6 +161,7 @@ export default function LoginPage() {
                   id="remember"
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  disabled={loading}
                 />
                 <Label htmlFor="remember" className="text-sm text-gray-600">
                   Lembrar-me
@@ -128,8 +173,12 @@ export default function LoginPage() {
             </div>
 
             {/* Botão Entrar */}
-            <Button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700">
-              Entrar
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? "Entrando..." : "Entrar"}
             </Button>
 
             {/* Termos de Uso */}
