@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Industry" ADD COLUMN     "currentCO2Emission" DOUBLE PRECISION NOT NULL DEFAULT 0;

@@ -11,7 +11,10 @@ import {
   Settings, 
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  Shield,
+  User
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -32,16 +35,6 @@ const menuItems = [
     title: "Alertas",
     href: "/dashboard/alerts",
     icon: AlertTriangle
-  },
-  {
-    title: "Auditores",
-    href: "/dashboard/auditors",
-    icon: Users
-  },
-  {
-    title: "Configurações",
-    href: "/dashboard/settings",
-    icon: Settings
   }
 ]
 
@@ -51,28 +44,13 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div className={cn(
-      "h-screen bg-white border-r flex flex-col transition-all duration-300",
-      collapsed ? "w-20" : "w-64"
-    )}>
-      {/* Logo e Toggle */}
-      <div className="p-4 border-b flex items-center justify-between">
-        {!collapsed && (
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">GM</span>
-            </div>
-            <span className="font-semibold">GovMonitor</span>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="ml-auto"
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+    <div className={cn("flex h-screen flex-col border-r bg-white dark:bg-gray-900", collapsed ? "w-20" : "w-64")}>
+      {/* Logo */}
+      <div className="flex h-14 items-center border-b px-4">
+        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+          <Shield className="h-6 w-6" />
+          <span className={cn("text-lg", collapsed && "hidden")}>EcoTrack</span>
+        </Link>
       </div>
 
       {/* Menu */}
@@ -97,49 +75,31 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Perfil do Usuário */}
-      <div className="p-4 border-t">
-        {!collapsed ? (
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 font-medium text-sm">
-                {session?.user?.name?.[0] || session?.user?.email?.[0] || "U"}
-              </span>
-            </div>
+      {/* User Section - Fixed at bottom */}
+      <div className="border-t p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+            <User className="h-5 w-5 text-gray-600" />
+          </div>
+          {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {session?.user?.name || session?.user?.email}
+                {session?.user?.name || "Usuário"}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {session?.user?.email?.split('@')[0] || "Usuário"}
+                {session?.user?.email || "usuario@exemplo.com"}
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => signOut()}
-              className="text-gray-500 hover:text-red-500"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center space-y-2">
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 font-medium text-sm">
-                {session?.user?.name?.[0] || session?.user?.email?.[0] || "U"}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => signOut()}
-              className="text-gray-500 hover:text-red-500"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => signOut()}
+            className="h-9 w-9"
+          >
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </div>
   )

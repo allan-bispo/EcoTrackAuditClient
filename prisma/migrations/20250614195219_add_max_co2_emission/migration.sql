@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Industry" ADD COLUMN     "details" JSONB,
+ADD COLUMN     "maxCO2Emission" DOUBLE PRECISION NOT NULL DEFAULT 1000.0,
+ALTER COLUMN "status" SET DEFAULT 'active';

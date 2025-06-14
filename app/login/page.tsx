@@ -71,7 +71,7 @@ export default function LoginPage() {
             <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-white font-bold text-xl">GM</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">GovMonitor</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">EcoTrack</h1>
             <p className="text-sm text-gray-600">Sistema de Monitoramento Industrial</p>
           </div>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   AlertTriangle, 
   Search, 
@@ -42,148 +42,87 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { toast } from "sonner"
 
-// Dados de exemplo
-const alerts = [
-  {
-    id: 1,
-    title: "Alta temperatura no forno",
-    factory: "Fábrica Norte",
-    severity: "high",
-    status: "pending",
-    createdAt: "2024-03-10T10:30:00",
-    description: "Temperatura do forno excedeu o limite de segurança",
-    details: {
-      temperature: "850°C",
-      limit: "800°C",
-      location: "Setor de Produção - Forno Principal",
-      responsible: "João Silva",
-      lastMaintenance: "2024-02-15",
-      actions: [
-        {
-          type: "maintenance",
-          description: "Verificação do sistema de refrigeração",
-          date: "2024-03-10T10:35:00",
-          status: "completed"
-        },
-        {
-          type: "inspection",
-          description: "Inspeção visual do forno",
-          date: "2024-03-10T10:40:00",
-          status: "completed"
-        }
-      ]
-    }
-  },
-  {
-    id: 2,
-    title: "Vazamento de gás detectado",
-    factory: "Fábrica Sul",
-    severity: "critical",
-    status: "resolved",
-    createdAt: "2024-03-10T09:15:00",
-    resolvedAt: "2024-03-10T09:45:00",
-    description: "Sistema detectou vazamento de gás na área de produção",
-    details: {
-      gasType: "Gás Natural",
-      concentration: "2.5%",
-      limit: "1.0%",
-      location: "Setor de Produção - Área 3",
-      responsible: "Maria Santos",
-      lastInspection: "2024-03-01",
-      actions: [
-        {
-          type: "emergency",
-          description: "Evacuação da área",
-          date: "2024-03-10T09:16:00",
-          status: "completed"
-        },
-        {
-          type: "maintenance",
-          description: "Reparo na válvula de gás",
-          date: "2024-03-10T09:30:00",
-          status: "completed"
-        }
-      ]
-    }
-  },
-  {
-    id: 3,
-    title: "Falha no sistema de ventilação",
-    factory: "Fábrica Leste",
-    severity: "medium",
-    status: "in_progress",
-    createdAt: "2024-03-10T08:00:00",
-    description: "Sistema de ventilação apresentando falhas intermitentes",
-    details: {
-      system: "Ventilação Central",
-      status: "Operação Intermitente",
-      location: "Setor Administrativo",
-      responsible: "Pedro Oliveira",
-      lastMaintenance: "2024-02-20",
-      actions: [
-        {
-          type: "inspection",
-          description: "Verificação dos motores",
-          date: "2024-03-10T08:15:00",
-          status: "completed"
-        },
-        {
-          type: "maintenance",
-          description: "Substituição dos filtros",
-          date: "2024-03-10T08:45:00",
-          status: "in_progress"
-        }
-      ]
-    }
-  },
-  {
-    id: 4,
-    title: "Nível de ruído acima do permitido",
-    factory: "Fábrica Oeste",
-    severity: "low",
-    status: "pending",
-    createdAt: "2024-03-10T07:30:00",
-    description: "Medições indicam níveis de ruído acima do permitido",
-    details: {
-      noiseLevel: "85 dB",
-      limit: "80 dB",
-      location: "Setor de Montagem",
-      responsible: "Ana Costa",
-      lastMeasurement: "2024-03-05",
-      actions: [
-        {
-          type: "measurement",
-          description: "Nova medição de ruído",
-          date: "2024-03-10T07:45:00",
-          status: "completed"
-        },
-        {
-          type: "inspection",
-          description: "Verificação das máquinas",
-          date: "2024-03-10T08:00:00",
-          status: "pending"
-        }
-      ]
-    }
-  },
-]
+type Alert = {
+  id: string
+  title: string
+  industry: {
+    name: string
+  }
+  severity: string
+  status: string
+  description: string
+  createdAt: string
+  resolvedAt?: string
+  details: Record<string, any>
+  actions: {
+    id: string
+    type: string
+    description: string
+    date: string
+    status: string
+  }[]
+}
 
 export default function AlertsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [severityFilter, setSeverityFilter] = useState("all")
-  const [selectedAlert, setSelectedAlert] = useState<typeof alerts[0] | null>(null)
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 3
+
+  useEffect(() => {
+    fetchAlerts()
+  }, [searchTerm, statusFilter, severityFilter])
+
+  // Resetar para a primeira página quando os filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, statusFilter, severityFilter])
 
   const filteredAlerts = alerts.filter(alert => {
-    const matchesSearch = alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         alert.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         alert.factory.toLowerCase().includes(searchTerm.toLowerCase())
+    const searchTermLower = searchTerm.toLowerCase()
+    const matchesSearch = 
+      alert.title.toLowerCase().includes(searchTermLower) ||
+      alert.industry.name.toLowerCase().includes(searchTermLower) ||
+      alert.description.toLowerCase().includes(searchTermLower)
+
     const matchesStatus = statusFilter === "all" || alert.status === statusFilter
     const matchesSeverity = severityFilter === "all" || alert.severity === severityFilter
+
     return matchesSearch && matchesStatus && matchesSeverity
   })
+
+  const totalPages = Math.ceil(filteredAlerts.length / itemsPerPage)
+  const paginatedAlerts = filteredAlerts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const fetchAlerts = async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams()
+      if (searchTerm) params.append("search", searchTerm)
+      if (statusFilter !== "all") params.append("status", statusFilter)
+      if (severityFilter !== "all") params.append("severity", severityFilter)
+
+      const response = await fetch(`/api/alerts?${params.toString()}`)
+      if (!response.ok) throw new Error("Erro ao buscar alertas")
+      
+      const data = await response.json()
+      setAlerts(data)
+    } catch (error) {
+      console.error("Erro ao buscar alertas:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -215,19 +154,6 @@ export default function AlertsPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "resolved":
-        return "bg-green-100 text-green-800"
-      case "in_progress":
-        return "bg-blue-100 text-blue-800"
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
   const getStatusText = (status: string) => {
     switch (status) {
       case "resolved":
@@ -236,8 +162,25 @@ export default function AlertsPage() {
         return "Em Andamento"
       case "pending":
         return "Pendente"
+      case "notified":
+        return "Notificado"
       default:
         return "Desconhecido"
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "resolved":
+        return "bg-green-100 text-green-800"
+      case "in_progress":
+        return "bg-blue-100 text-blue-800"
+      case "pending":
+        return "bg-yellow-100 text-yellow-800"
+      case "notified":
+        return "bg-red-100 text-red-800"
+      default:
+        return "bg-gray-100 text-gray-800"
     }
   }
 
@@ -254,31 +197,75 @@ export default function AlertsPage() {
     }
   }
 
-  const handleViewDetails = (alert: typeof alerts[0]) => {
+  const handleViewDetails = (alert: Alert) => {
     setSelectedAlert(alert)
     setIsDetailsOpen(true)
   }
 
-  const handleAuditorAction = (action: 'approve' | 'reject' | 'request_info') => {
+  const handleAuditorAction = async (action: 'approve' | 'reject' | 'request_info') => {
     if (!selectedAlert) return
 
-    // Aqui você implementaria a lógica para salvar a ação do auditor
-    console.log(`Ação do auditor: ${action} para o alerta ${selectedAlert.id}`)
-    
-    // Exemplo de feedback visual
-    switch (action) {
-      case 'approve':
-        alert('Alerta aprovado com sucesso!')
-        break
-      case 'reject':
-        alert('Alerta rejeitado!')
-        break
-      case 'request_info':
-        alert('Solicitação de mais informações enviada!')
-        break
-    }
+    try {
+      const response = await fetch(`/api/alerts/${selectedAlert.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: action === 'approve' ? 'resolved' : 
+                 action === 'reject' ? 'notified' : 'in_progress'
+        }),
+      })
 
-    setIsDetailsOpen(false)
+      if (!response.ok) throw new Error('Erro ao atualizar alerta')
+
+      // Atualizar a lista de alertas
+      fetchAlerts()
+      
+      // Feedback visual
+      switch (action) {
+        case 'approve':
+          toast.success('Alerta aprovado com sucesso!')
+          break
+        case 'reject':
+          toast.success('Alerta notificado com sucesso!')
+          break
+        case 'request_info':
+          toast.success('Solicitação de mais informações enviada!')
+          break
+      }
+
+      setIsDetailsOpen(false)
+    } catch (error) {
+      console.error('Erro ao processar ação:', error)
+      toast.error('Erro ao processar ação. Tente novamente.')
+    }
+  }
+
+  const handleUpdateStatus = async (alert: Alert, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/alerts/${alert.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          resolvedAt: newStatus === 'resolved' ? new Date().toISOString() : null
+        }),
+      })
+
+      if (!response.ok) throw new Error('Erro ao atualizar status do alerta')
+
+      // Atualizar a lista de alertas
+      fetchAlerts()
+      
+      // Feedback visual
+      toast.success(`Alerta ${newStatus === 'in_progress' ? 'marcado como em andamento' : 'marcado como resolvido'}!`)
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error)
+      toast.error('Erro ao atualizar status do alerta')
+    }
   }
 
   return (
@@ -312,6 +299,7 @@ export default function AlertsPage() {
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="pending">Pendentes</SelectItem>
             <SelectItem value="in_progress">Em Andamento</SelectItem>
+            <SelectItem value="notified">Notificado</SelectItem>
             <SelectItem value="resolved">Resolvidos</SelectItem>
           </SelectContent>
         </Select>
@@ -327,83 +315,105 @@ export default function AlertsPage() {
             <SelectItem value="low">Baixa</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline">
-          <Filter className="w-4 h-4 mr-2" />
-          Mais Filtros
-        </Button>
       </div>
 
       {/* Lista de Alertas */}
       <div className="grid gap-6">
-        {filteredAlerts.map((alert) => (
-          <Card key={alert.id}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getSeverityColor(alert.severity)}`}>
-                    <AlertTriangle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{alert.title}</h3>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <Building2 className="w-4 h-4" />
-                      <span>{alert.factory}</span>
+        {isLoading ? (
+          <div className="text-center py-8">Carregando alertas...</div>
+        ) : filteredAlerts.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">Nenhum alerta encontrado</div>
+        ) : (
+          paginatedAlerts.map((alert) => (
+            <Card key={alert.id}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getSeverityColor(alert.severity)}`}>
+                      <AlertTriangle className="w-6 h-6" />
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{alert.description}</p>
+                    <div>
+                      <h3 className="font-semibold text-lg">{alert.title}</h3>
+                      <div className="flex items-center space-x-2 text-sm text-gray-500">
+                        <Building2 className="w-4 h-4" />
+                        <span>{alert.industry.name}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{alert.description}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Criado em</p>
-                    <p className="font-medium">{new Date(alert.createdAt).toLocaleString()}</p>
-                  </div>
-                  {alert.resolvedAt && (
+                  <div className="flex items-center space-x-4">
                     <div className="text-right">
-                      <p className="text-sm text-gray-500">Resolvido em</p>
-                      <p className="font-medium">{new Date(alert.resolvedAt).toLocaleString()}</p>
+                      <p className="text-sm text-gray-500 mb-1.5">Criticidade</p>
+                      <p className={`text-sm font-medium px-2.5 py-0.5 rounded-full text-center ${getSeverityColor(alert.severity)}`}>
+                        {getSeverityText(alert.severity)}
+                      </p>
                     </div>
-                  )}
-                  <div className="flex flex-col items-end space-y-2">
-                    <span className={`px-3 py-1 rounded-full text-sm ${getSeverityColor(alert.severity)}`}>
-                      {getSeverityText(alert.severity)}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(alert.status)} flex items-center space-x-1`}>
-                      {getStatusIcon(alert.status)}
-                      <span>{getStatusText(alert.status)}</span>
-                    </span>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500 mb-1.5">Status</p>
+                      <p className={`text-sm font-medium px-2.5 py-0.5 rounded-full text-center ${getStatusColor(alert.status)}`}>
+                        {getStatusText(alert.status)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500 mb-1.5">Criado em</p>
+                      <p className="font-medium">{new Date(alert.createdAt).toLocaleString()}</p>
+                    </div>
+                    {alert.resolvedAt && (
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500 mb-1.5">Resolvido em</p>
+                        <p className="font-medium">{new Date(alert.resolvedAt).toLocaleString()}</p>
+                      </div>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(alert)}>
+                          Ver Detalhes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleUpdateStatus(alert, 'in_progress')}
+                          disabled={alert.status === 'in_progress' || alert.status === 'resolved'}
+                        >
+                          Marcar como Em Andamento
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleUpdateStatus(alert, 'resolved')}
+                          disabled={alert.status === 'resolved'}
+                        >
+                          Marcar como Resolvido
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewDetails(alert)}>
-                        Ver Detalhes
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>Marcar como Em Andamento</DropdownMenuItem>
-                      <DropdownMenuItem>Marcar como Resolvido</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">Arquivar</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Paginação */}
       <div className="flex justify-between items-center">
         <p className="text-sm text-gray-500">
-          Mostrando {filteredAlerts.length} de {alerts.length} alertas
+          Mostrando {paginatedAlerts.length} de {filteredAlerts.length} alertas
         </p>
         <div className="flex gap-2">
-          <Button variant="outline" disabled>
+          <Button 
+            variant="outline" 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
             Anterior
           </Button>
-          <Button variant="outline" disabled>
+          <Button 
+            variant="outline" 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
             Próxima
           </Button>
         </div>
@@ -431,7 +441,7 @@ export default function AlertsPage() {
                     <h4 className="font-semibold mb-2">Informações do Alerta</h4>
                     <div className="space-y-2">
                       <p className="text-sm">
-                        <span className="font-medium">Fábrica:</span> {selectedAlert.factory}
+                        <span className="font-medium">Fábrica:</span> {selectedAlert.industry.name}
                       </p>
                       <p className="text-sm">
                         <span className="font-medium">Severidade:</span>{" "}
@@ -473,9 +483,9 @@ export default function AlertsPage() {
                 <div>
                   <h4 className="font-semibold mb-2">Ações Realizadas</h4>
                   <div className="space-y-2">
-                    {selectedAlert.details.actions.map((action, index) => (
+                    {selectedAlert.actions.map((action) => (
                       <div
-                        key={index}
+                        key={action.id}
                         className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
                       >
                         <div>
@@ -508,7 +518,7 @@ export default function AlertsPage() {
                   className="flex-1"
                 >
                   <X className="w-4 h-4 mr-2" />
-                  Rejeitar
+                  Notificar
                 </Button>
                 <Button
                   onClick={() => handleAuditorAction('approve')}
